@@ -49,7 +49,7 @@ const parts = [
   part_({ id: 'kotf', name: 'Kotflügel', kind: 'print', color: '#e8590c', off: [0, 0, 40], perMeshOff: [[0, 24, 0], [0, -24, 0]], qty: 2, size: '53 × 34 × 21 mm',
     note: 'Links und rechts, liegend drucken (Platte unten), an die Torso-Seite kleben.', meshes: [M(part.fender(1), null), M(part.fender(-1), null)] }),
 
-  part_({ id: 'akku', name: '18650-Akku mit Halter', kind: 'buy', color: '#2f6fd0', off: [0, 0, 18], qty: 1, size: '77 × 21 × 20 mm', price: '6,50 €',
+  part_({ id: 'akku', name: '18650-Akku mit Halter', kind: 'buy', color: '#2f6fd0', off: [0, 0, 18], qty: 1, size: '77 × 21 × 20 mm', price: '5,00 €',
     meshes: [M(box(T.cx - 38.5, -10.5, 11.6, T.cx + 38.5, 10.5, 21.6), '#26282c'), M(cylX(0, 21.5, T.cx - 32.5, T.cx + 32.5, 9, 32), '#2f6fd0'), M(cylX(0, 21.5, T.cx + 32.5, T.cx + 33.5, 4, 16), '#d9dde1')] }),
   part_({ id: 'motor', name: 'N20-Motor 6 V', kind: 'buy', color: '#c4c8ce', off: [0, 0, 12], perMeshOff: motors.map((_, i) => [0, (i < 4 ? 1 : -1) * 20, 0]), qty: 2, size: '12 × 10 × 24 mm', price: '6,00 €', meshes: motors }),
   part_({ id: 'tp4056', name: 'TP4056 Lademodul', kind: 'buy', color: '#1d4fa3', off: [-20, 0, 24], qty: 1, size: '26 × 17 mm', price: '1,50 €',
