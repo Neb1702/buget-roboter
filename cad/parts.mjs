@@ -1,6 +1,6 @@
 // Parametrische Konstruktion des Roboters. Einheiten: mm. x = vorne, y = links, z = oben.
 // Alle Maße der Elektronik-Module stehen oben als Parameter: nachmessen und anpassen!
-import { CSG, box, cylZ, coneZ, cylY, cylX, rrect, cyl } from './csg.mjs';
+import { CSG, box, cylZ, coneZ, cylY, cylX, rrect, cyl, sphere } from './csg.mjs';
 
 export const P = {
   L: 130, W: 92, R: 14,            // Grundriss Chassis/Torso
@@ -13,7 +13,7 @@ export const P = {
   motor: { w: 12, h: 10, len: 24 },// N20 Getriebemotor (Gehäuse)
   tray: { cx: 8, w: 78.5, d: 22.5 },// 18650-Halter
   lugs: [[52, 34], [52, -34], [-52, 34], [-52, -34]], // Schrauben Torso <-> Chassis (M2)
-  head: { cx: 35, w: 54, d: 78, r: 8, h: 42, z0: 49 },
+  head: { cx: 35, w: 54, d: 78, r: 10, h: 42, z0: 49 },
   mods: {                          // Module: Mitte x, y, Breite (x), Tiefe (y)
     tp4056: [-47, 0, 26, 17], mt3608: [26, 34.5, 36, 17],
     drv8833: [18, -34.5, 20, 17], max98357: [-33, -34.5, 19, 18],
@@ -77,7 +77,9 @@ export function skid() {
 // ---------------- Torso ----------------
 export function shell() {
   const { L, W, R, zPlate1: z1, wall, zTop, ceil, lugs, axleX, head, speaker } = P;
-  let s = rrect(0, 0, L, W, R, z1, zTop).subtract(rrect(0, 0, L - 2 * wall, W - 2 * wall, R - wall, z1 - 1, zTop - ceil));
+  let s = rrect(0, 0, L, W, R, z1, zTop - 2)
+    .union(rrect(0, 0, L - 1.6, W - 1.6, R - 0.8, zTop - 2.1, zTop - 1), rrect(0, 0, L - 3.2, W - 3.2, R - 1.6, zTop - 1.1, zTop))
+    .subtract(rrect(0, 0, L - 2 * wall, W - 2 * wall, R - wall, z1 - 1, zTop - ceil));
   const adds = [];
   for (const [x, y] of lugs) adds.push(cylZ(x, y, z1, zTop - ceil + 1, 3.2, 20));
   // Lautsprecher-Sitz unter der Decke
@@ -97,6 +99,8 @@ export function shell() {
   // Kopf-Schrauben (von innen) und Kabeldurchlass
   for (const [x, y] of headLugPos()) { cuts.push(cylZ(x, y, zTop - ceil - 1, zTop + 1, 1.3, 12)); cuts.push(cylZ(x, y, zTop - ceil - 1, zTop - ceil + 1.5, 2.4, 12)); }
   cuts.push(box(head.cx - 7, -14, zTop - ceil - 1, head.cx + 9, 14, zTop + 1));
+  // Zierfuge rundherum (Gürtellinie)
+  cuts.push(rrect(0, 0, L + 2, W + 2, R + 1, 38.2, 39.6).subtract(rrect(0, 0, L - 2, W - 2, R - 1, 38, 39.8)));
   // Rückwand: USB-C-Ladebuchse (TP4056) und Schalter
   cuts.push(box(-67, -6.5, z1 - 1, -61, 6.5, z1 + 6.5));
   cuts.push(cylX(30, 28, -67, -61, 3.1, 20));
@@ -107,7 +111,9 @@ const headLugPos = () => [[12, 30], [12, -30], [57, 30], [57, -30]];
 // ---------------- Kopf ----------------
 export function head() {
   const { cx, w, d, r, h, z0 } = P.head, wall = P.wall, zc = z0 + h;
-  let hd = rrect(cx, 0, w, d, r, z0, zc).subtract(rrect(cx, 0, w - 2 * wall, d - 2 * wall, r - wall, z0 - 1, zc - 2.4));
+  let hd = rrect(cx, 0, w, d, r, z0, zc - 3)
+    .union(rrect(cx, 0, w - 1.6, d - 1.6, r - 0.8, zc - 3.1, zc - 2), rrect(cx, 0, w - 3.2, d - 3.2, r - 1.6, zc - 2.1, zc - 1), rrect(cx, 0, w - 4.8, d - 4.8, r - 2.4, zc - 1.1, zc))
+    .subtract(rrect(cx, 0, w - 2 * wall, d - 2 * wall, r - wall, z0 - 1, zc - 2.4));
   const ceilZ = zc - 2.4, adds = [];
   for (const [x, y] of headLugPos()) adds.push(cylZ(x, y, z0, ceilZ + 1, 3.2, 20));
   // HC-SR04: Führungsblöcke (Platine liegt bei x = cx+15 .. cx+16.6, Augen zeigen nach vorn)
@@ -122,14 +128,36 @@ export function head() {
     .subtract(box(ex - 0.2, s * 28, z0 + 22, ex + 1.8, s * 36.5, z0 + 33)));
   // Mikrofon-Tasche an der Decke
   adds.push(cradle(cx + 3, 0, 14, 14, ceilZ - 5, 5.5, 'ABCD'));
+  // Optik: Ohren (Scheiben an den Seiten) und Augenringe vorn
+  for (const s of [1, -1]) {
+    adds.push(cylY(cx + 12, z0 + 22, s * (d / 2 - 1), s * (d / 2 + 4), 9, 40));
+    adds.push(cylX(s * 13, z0 + 21, cx + w / 2 - 1, cx + w / 2 + 2.5, 11, 48));
+  }
   hd = hd.union(...adds);
 
   const cuts = [];
   for (const [x, y] of headLugPos()) cuts.push(cylZ(x, y, z0 - 1, z0 + 12, 0.95, 12));
-  for (const s of [1, -1]) cuts.push(cylX(s * 13, z0 + 21, cx + w / 2 - 4, cx + w / 2 + 1, 8.4, 40)); // Ultraschall-Augen
+  for (const s of [1, -1]) {
+    cuts.push(cylX(s * 13, z0 + 21, cx + w / 2 - 4, cx + w / 2 + 4, 8.4, 40));                  // Ultraschall-Augen
+    cuts.push(cylY(cx + 12, z0 + 22, s * (d / 2 + 2.8), s * (d / 2 + 5), 6.2, 32));             // Vertiefung im Ohr
+  }
+  for (let i = 0; i < 3; i++) cuts.push(box(cx + w / 2 - 1.2, -9, z0 + 3 + i * 2.3, cx + w / 2 + 1, 9, z0 + 4.2 + i * 2.3)); // Mund
   cuts.push(box(cx - 9, -d / 2 - 1, z0 + 4, cx + 1, -d / 2 + 4, z0 + 27));               // USB-Zugang ESP32
   cuts.push(cylZ(cx + 3, 0, ceilZ - 1, zc + 1, 1.3, 16));                                  // Mikrofon-Öffnung
   return hd.subtract(...cuts);
+}
+
+// ---------------- Antenne (stehend drucken, Fuß auf den Kopf kleben) ----------------
+export function antenna() {
+  return cylZ(0, 0, 0, 2.5, 5, 32).union(cylZ(0, 0, 2, 17, 1.6, 20), sphere(0, 0, 20, 4.2, 28, 14));
+}
+
+// ---------------- Kotflügel (liegend drucken, an die Torso-Seite kleben) ----------------
+export function fender(sg) {
+  const { axleX: ax, axleZ: az } = P;
+  const ring = cylY(ax, az, sg * 46, sg * 67, 26.5, 64).subtract(cylY(ax, az, sg * 45, sg * 68, 23.5, 64));
+  const plate = cylY(ax, az, sg * 46, sg * 47.2, 26.5, 64).subtract(cylY(ax, az, sg * 45, sg * 48, 10, 32));
+  return ring.union(plate).subtract(box(ax - 40, sg * 40, az - 60, ax + 40, sg * 70, az - 8));
 }
 
 // ---------------- Rad ----------------

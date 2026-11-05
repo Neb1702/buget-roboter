@@ -10,6 +10,9 @@ const jobs = [
   ['kopf', part.head, ([x, y, z]) => [x - 35, -y, 91 - z]],           // kopfüber drucken
   ['rad', part.wheel, (v) => v],                                      // 2x drucken
   ['stuetzfuss', part.skid, (v) => v],                                // 1x drucken
+  ['antenne', part.antenna, (v) => v],                                // 1x drucken, stehend
+  ['kotfluegel_links', () => part.fender(1), ([x, y, z]) => [x + 5, 21.5 - z, y - 46]],   // liegend, Platte unten
+  ['kotfluegel_rechts', () => part.fender(-1), ([x, y, z]) => [x + 5, z - 21.5, -y - 46]],
 ];
 for (const [name, fn, orient] of jobs) {
   const t = Date.now();

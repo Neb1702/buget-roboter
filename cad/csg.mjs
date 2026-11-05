@@ -201,6 +201,18 @@ export const coneZ = (x, y, z0, z1, r0, r1, n = 24) => cyl([x, y, z0], [x, y, z1
 export const cylY = (x, z, y0, y1, r, n) => cyl([x, y0, z], [x, y1, z], r, r, n);
 export const cylX = (y, z, x0, x1, r, n) => cyl([x0, y, z], [x1, y, z], r, r, n);
 
+export function sphere(cx, cy, cz, r, n = 24, m = 12) {
+  const pt = (i, j) => { const ph = (Math.PI * i) / m, th = (2 * Math.PI * j) / n;
+    return [cx + r * Math.sin(ph) * Math.cos(th), cy + r * Math.sin(ph) * Math.sin(th), cz + r * Math.cos(ph)]; };
+  const polys = [];
+  for (let j = 0; j < n; j++) {
+    polys.push(poly([[cx, cy, cz + r], pt(1, j), pt(1, j + 1)]));
+    polys.push(poly([pt(m - 1, j), [cx, cy, cz - r], pt(m - 1, j + 1)]));
+    for (let i = 1; i < m - 1; i++) polys.push(poly([pt(i, j), pt(i + 1, j), pt(i + 1, j + 1), pt(i, j + 1)]));
+  }
+  return new CSG(polys);
+}
+
 // ---------- Export ----------
 export function toSTL(csg, name = 'part') {
   const tris = csg.triangles();

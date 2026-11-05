@@ -121,8 +121,13 @@ cd cad && node build.mjs && node web.mjs
 | `kopf.stl` | 1 | wie exportiert (kopfüber) | 0,16 mm, 3 Wände, 15 % Infill |
 | `rad.stl` | 2 | flach | PETG/PLA, optional Gummiband als Reifen |
 | `stuetzfuss.stl` | 1 | stehend | Zapfen kleben, glatte Kuppe, PETG rutscht gut |
+| `antenne.stl` | 1 | stehend | Fuß auf die Kopf-Oberseite kleben (Position siehe 3D-Ansicht) |
+| `kotfluegel_links.stl` / `kotfluegel_rechts.stl` | je 1 | liegend, Platte unten | an die Torso-Seite über den Rädern kleben |
 
-Gesamt ca. 100 g Filament. Maße: 130 × 92 × 91 mm (mit Rädern 131 mm breit).
+**Farbempfehlung:** Chassis und Räder schwarz/anthrazit, Torso weiß, Kopf, Antenne, Kotflügel und Stützfuß orange.
+Torso und Kopf haben abgeschrägte Oberkanten, der Kopf hat Ohren, Augenringe und einen Mund, der Torso eine Zierfuge.
+
+Gesamt ca. 110 g Filament. Maße: 130 × 92 × 91 mm (mit Antenne 115 mm hoch, mit Rädern 131 mm breit).
 
 ## Zusammenbau
 

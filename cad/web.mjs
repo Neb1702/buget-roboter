@@ -44,6 +44,11 @@ const parts = [
   part_({ id: 'fuss', name: 'Stützfuß', kind: 'print', color: '#e8590c', off: [0, 0, -26], qty: 1, size: 'Ø 16 × 15 mm',
     note: 'Zapfen nach unten in die Chassis-Platte stecken und kleben.', meshes: [M(skid, null)] }),
 
+  part_({ id: 'antenne', name: 'Antenne', kind: 'print', color: '#e8590c', off: [0, 0, 150], qty: 1, size: 'Ø 10 × 24 mm',
+    note: 'Stehend drucken, Fuß auf die Kopf-Oberseite kleben.', meshes: [M(part.antenna().transform(([x, y, z]) => [hx - 12 + x, y, 91 + z]), null)] }),
+  part_({ id: 'kotf', name: 'Kotflügel', kind: 'print', color: '#e8590c', off: [0, 0, 40], perMeshOff: [[0, 24, 0], [0, -24, 0]], qty: 2, size: '53 × 34 × 21 mm',
+    note: 'Links und rechts, liegend drucken (Platte unten), an die Torso-Seite kleben.', meshes: [M(part.fender(1), null), M(part.fender(-1), null)] }),
+
   part_({ id: 'akku', name: '18650-Akku mit Halter', kind: 'buy', color: '#2f6fd0', off: [0, 0, 18], qty: 1, size: '77 × 21 × 20 mm', price: '6,50 €',
     meshes: [M(box(T.cx - 38.5, -10.5, 11.6, T.cx + 38.5, 10.5, 21.6), '#26282c'), M(cylX(0, 21.5, T.cx - 32.5, T.cx + 32.5, 9, 32), '#2f6fd0'), M(cylX(0, 21.5, T.cx + 32.5, T.cx + 33.5, 4, 16), '#d9dde1')] }),
   part_({ id: 'motor', name: 'N20-Motor 6 V', kind: 'buy', color: '#c4c8ce', off: [0, 0, 12], perMeshOff: motors.map((_, i) => [0, (i < 4 ? 1 : -1) * 20, 0]), qty: 2, size: '12 × 10 × 24 mm', price: '6,00 €', meshes: motors }),
