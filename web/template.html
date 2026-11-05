@@ -1,0 +1,344 @@
+<title>Robo 3D-Modell</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: Bühne mit 3D-Ansicht links, Teilepanel rechts (am Handy untereinander).
+     Palette: Werkbank-Grau mit Druckfilament-Orange als einzigem Akzent. */
+  :root {
+    --bg: #e9edf0;
+    --stage: #dfe5e9;
+    --panel: #f6f8f9;
+    --fg: #1b2127;
+    --muted: #5d6a74;
+    --line: #cdd5db;
+    --accent: #d9480f;
+    --accent-fg: #ffffff;
+    --grid: rgba(27, 33, 39, .06);
+    --shadow: 0.22;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171b; --stage: #161c21; --panel: #1b2228; --fg: #e8edf0; --muted: #93a1ac;
+      --line: #2c373f; --accent: #ff7a2e; --accent-fg: #1b1005; --grid: rgba(232, 237, 240, .06); --shadow: 0.55;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171b; --stage: #161c21; --panel: #1b2228; --fg: #e8edf0; --muted: #93a1ac;
+    --line: #2c373f; --accent: #ff7a2e; --accent-fg: #1b1005; --grid: rgba(232, 237, 240, .06); --shadow: 0.55;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+  * { box-sizing: border-box; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) 348px; height: 100%; min-height: 0; }
+  .stage {
+    position: relative; min-height: 0; background-color: var(--stage); overflow: hidden;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .hud { position: absolute; top: 16px; left: max(16px, env(safe-area-inset-left, 0px)); right: 16px; pointer-events: none; display: flex; flex-direction: column; gap: 2px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+  .dims { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .views { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .hint { position: absolute; right: 16px; bottom: 18px; font-size: 12px; color: var(--muted); pointer-events: none; text-align: right; }
+
+  .chip {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 12px; cursor: pointer; min-height: 32px;
+  }
+  .chip:hover { border-color: var(--muted); }
+  .chip[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+  .panel { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; min-height: 0;
+    padding-block: 18px; padding-left: 18px; padding-right: max(18px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+  .panel h2 { margin: 0 0 8px; font-size: 11px; font-family: var(--font-mono); font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .ctl { display: flex; flex-direction: column; gap: 14px; }
+  .row { display: flex; flex-direction: column; gap: 6px; }
+  .row label, .row .lbl { display: flex; justify-content: space-between; font-weight: 500; }
+  .row output { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 24px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 7px 4px; cursor: pointer; min-height: 34px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button:hover:not([aria-pressed="true"]) { background: var(--bg); }
+  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+
+  .group-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .group-head h2 { margin: 0; }
+  .group-head span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  .part { border-top: 1px solid var(--line); }
+  .part:last-child { border-bottom: 1px solid var(--line); }
+  .part label { display: grid; grid-template-columns: 16px 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 4px; cursor: pointer; }
+  .part:hover, .part.on { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .part input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+  .pname { min-width: 0; overflow-wrap: anywhere; }
+  .pmeta { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pnote { margin: 0; padding: 0 4px 9px 44px; font-size: 12.5px; color: var(--muted); }
+  .foot { font-size: 12.5px; color: var(--muted); }
+
+  @media (max-width: 820px) {
+    html, body { height: auto; }
+    .app { grid-template-columns: minmax(0, 1fr); height: auto; }
+    .stage { height: 64vh; min-height: 340px; padding-left: 0; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow: visible; }
+    h1 { font-size: 22px; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<main class="app">
+  <section class="stage" id="stage">
+    <canvas id="gl" aria-label="3D-Modell des Roboters. Ziehen zum Drehen, Mausrad oder zwei Finger zum Zoomen."></canvas>
+    <div class="hud">
+      <div class="eyebrow">Mini-KI-Roboter · 3D-gedruckt</div>
+      <h1>Robo</h1>
+      <div class="dims" id="dims">130 × 92 × 91 mm</div>
+    </div>
+    <div class="views" role="group" aria-label="Ansicht wählen">
+      <button class="chip" data-view="iso" type="button">Schräg</button>
+      <button class="chip" data-view="front" type="button">Vorne</button>
+      <button class="chip" data-view="side" type="button">Seite</button>
+      <button class="chip" data-view="top" type="button">Oben</button>
+    </div>
+    <div class="hint">Ziehen: drehen · Rad: zoomen</div>
+  </section>
+
+  <aside class="panel">
+    <section>
+      <h2>Ansicht</h2>
+      <div class="ctl">
+        <div class="row">
+          <label for="explode">Explosionsansicht <output id="explodeOut">0 %</output></label>
+          <input id="explode" type="range" min="0" max="100" value="0">
+        </div>
+        <div class="row">
+          <span class="lbl" id="shellLbl">Gehäuse</span>
+          <div class="seg" role="group" aria-labelledby="shellLbl" id="shellSeg">
+            <button type="button" data-mode="solid" aria-pressed="true">Voll</button>
+            <button type="button" data-mode="glass" aria-pressed="false">Durchsichtig</button>
+            <button type="button" data-mode="off" aria-pressed="false">Aus</button>
+          </div>
+        </div>
+        <label class="check"><input id="spin" type="checkbox" checked> Automatisch drehen</label>
+      </div>
+    </section>
+    <section id="listPrint"></section>
+    <section id="listBuy"></section>
+    <p class="foot" id="foot"></p>
+  </aside>
+</main>
+
+<script>
+const PARTS = /*__PARTS__*/null;
+
+// ---------- Hilfen ----------
+const $ = (s) => document.querySelector(s);
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+const b64 = (s) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Float32Array(u.buffer); };
+const fmt1 = (n) => n.toLocaleString('de-DE', { maximumFractionDigits: 0 });
+let store = null; try { store = window.localStorage; } catch (e) {}
+const saved = (k, d) => { try { const v = store && store.getItem(k); return v == null ? d : v; } catch (e) { return d; } };
+const save = (k, v) => { try { store && store.setItem(k, v); } catch (e) {} };
+
+// ---------- Mathematik (Spaltenmatrizen) ----------
+function perspective(fovy, asp, n, f) {
+  const t = 1 / Math.tan(fovy / 2), m = new Float32Array(16);
+  m[0] = t / asp; m[5] = t; m[10] = (f + n) / (n - f); m[11] = -1; m[14] = (2 * f * n) / (n - f); return m;
+}
+function lookAt(e, c, u) {
+  let z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]]; let l = Math.hypot(...z); z = z.map((v) => v / l);
+  let x = [u[1] * z[2] - u[2] * z[1], u[2] * z[0] - u[0] * z[2], u[0] * z[1] - u[1] * z[0]]; l = Math.hypot(...x); x = x.map((v) => v / l);
+  const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+  const m = new Float32Array(16);
+  m[0] = x[0]; m[4] = x[1]; m[8] = x[2]; m[12] = -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]);
+  m[1] = y[0]; m[5] = y[1]; m[9] = y[2]; m[13] = -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]);
+  m[2] = z[0]; m[6] = z[1]; m[10] = z[2]; m[14] = -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]); m[15] = 1; return m;
+}
+
+// ---------- WebGL ----------
+const canvas = $('#gl');
+const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true });
+if (!gl) {
+  $('#stage').insertAdjacentHTML('beforeend', '<p style="position:absolute;inset:40% 16px auto;text-align:center;color:var(--muted)">Dieser Browser unterstützt kein WebGL2. Die Teileliste rechts funktioniert trotzdem.</p>');
+}
+const VS = `#version 300 es
+in vec3 p; uniform mat4 uP, uV; uniform vec3 uOff; out vec3 vV;
+void main(){ vec4 v = uV * vec4(p + uOff, 1.0); vV = v.xyz; gl_Position = uP * v; }`;
+const FS = `#version 300 es
+precision highp float; in vec3 vV; uniform vec3 uC; uniform float uA, uHi; out vec4 o;
+void main(){
+  vec3 n = normalize(cross(dFdx(vV), dFdy(vV)));
+  vec3 vd = normalize(-vV); if (dot(n, vd) < 0.0) n = -n;
+  float key = max(dot(n, normalize(vec3(-0.45, 0.75, 0.55))), 0.0);
+  float fill = max(dot(n, normalize(vec3(0.7, -0.25, 0.45))), 0.0) * 0.32;
+  float rim = pow(1.0 - max(dot(n, vd), 0.0), 3.0) * 0.14;
+  vec3 c = mix(uC, vec3(1.0, 0.45, 0.1), 0.35 * uHi);
+  vec3 col = c * (0.36 + 0.78 * key + fill) + rim;
+  o = vec4(col * uA, uA);
+}`;
+const GVS = `#version 300 es
+in vec2 q; uniform mat4 uP, uV; out vec2 vq;
+void main(){ vq = q; gl_Position = uP * uV * vec4(q * 170.0, 0.0, 1.0); }`;
+const GFS = `#version 300 es
+precision highp float; in vec2 vq; uniform float uS; out vec4 o;
+void main(){ float d = length(vq * vec2(0.86, 1.18)); float a = uS * smoothstep(1.0, 0.0, d) * smoothstep(0.0, 0.35, 1.0 - d * 0.45); o = vec4(0.0, 0.0, 0.0, a * 0.9); o.rgb *= o.a; }`;
+
+function program(vs, fs) {
+  const pr = gl.createProgram();
+  for (const [t, s] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
+    gl.attachShader(pr, sh);
+  }
+  gl.linkProgram(pr); return pr;
+}
+let prog, gprog, U = {}, GU = {}, groundVao;
+const state = { explode: 0, explodeTarget: 0, hi: null, shell: saved('robo.shell', 'solid'), vis: {} };
+if (gl) {
+  prog = program(VS, FS); gprog = program(GVS, GFS);
+  for (const n of ['uP', 'uV', 'uOff', 'uC', 'uA', 'uHi']) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uP', 'uV', 'uS']) GU[n] = gl.getUniformLocation(gprog, n);
+  const qb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, qb);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]), gl.STATIC_DRAW);
+  groundVao = gl.createVertexArray(); gl.bindVertexArray(groundVao);
+  const ql = gl.getAttribLocation(gprog, 'q'); gl.enableVertexAttribArray(ql); gl.vertexAttribPointer(ql, 2, gl.FLOAT, false, 0, 0);
+  for (const part of PARTS) {
+    part.gpu = part.meshes.map((m, i) => {
+      const data = b64(m.p), vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+      const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      const l = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 3, gl.FLOAT, false, 0, 0);
+      return { vao, n: data.length / 3, c: hex(m.c || part.color), d: part.perMeshOff ? part.perMeshOff[i] : [0, 0, 0] };
+    });
+    state.vis[part.id] = true;
+  }
+}
+
+// ---------- Kamera ----------
+const VIEWS = { iso: [32, 20, 330], front: [0, 6, 330], side: [90, 6, 330], top: [0, 89, 360] };
+const cam = { az: 32, el: 20, dist: 330, tgt: [0, 0, 44] };
+let goal = null, dirty = true, userTouched = false;
+function setView(name) {
+  const [az, el, d] = VIEWS[name]; goal = { az, el, dist: d }; userTouched = true; $('#spin').checked = false; dirty = true;
+  document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+const ptrs = new Map(); let pinch0 = 0;
+canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); goal = null;
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+canvas.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 1) { cam.az -= (e.clientX - prev[0]) * 0.4; cam.el = Math.max(-5, Math.min(89, cam.el + (e.clientY - prev[1]) * 0.35)); }
+  else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) cam.dist = clampD(cam.dist * pinch0 / d); pinch0 = d; }
+  userTouched = true; $('#spin').checked = false; dirty = true;
+});
+const end = (e) => { ptrs.delete(e.pointerId); pinch0 = 0; };
+canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+const clampD = (d) => Math.max(140, Math.min(700, d));
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.dist = clampD(cam.dist * Math.exp(e.deltaY * 0.001)); dirty = true; }, { passive: false });
+
+// ---------- Zeichnen ----------
+function frame(t) {
+  requestAnimationFrame(frame);
+  if (!gl) return;
+  const spin = $('#spin').checked;
+  if (spin) { cam.az += 0.18; dirty = true; }
+  if (goal) {
+    let da = ((goal.az - cam.az + 540) % 360) - 180;
+    cam.az += da * 0.14; cam.el += (goal.el - cam.el) * 0.14; cam.dist += (goal.dist - cam.dist) * 0.14;
+    if (Math.abs(da) + Math.abs(goal.el - cam.el) < 0.05) goal = null; dirty = true;
+  }
+  if (Math.abs(state.explode - state.explodeTarget) > 0.0005) { state.explode += (state.explodeTarget - state.explode) * 0.18; dirty = true; }
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; dirty = true; }
+  if (!dirty) return; dirty = false;
+
+  const az = cam.az * Math.PI / 180, el = cam.el * Math.PI / 180, ex = state.explode;
+  const zc = cam.tgt[2] + ex * 38, D = cam.dist * (1 + 0.5 * ex);
+  const eye = [cam.tgt[0] + D * Math.cos(el) * Math.cos(az), cam.tgt[1] + D * Math.cos(el) * Math.sin(az), zc + D * Math.sin(el)];
+  const asp = w / Math.max(h, 1), narrow = asp < 1;
+  const P = perspective(narrow ? 0.78 : 0.56, asp, 10, 2000), V = lookAt(eye, [cam.tgt[0], cam.tgt[1], zc], [0, 0, 1]);
+
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  // Bodenschatten
+  gl.useProgram(gprog); gl.depthMask(false); gl.uniformMatrix4fv(GU.uP, false, P); gl.uniformMatrix4fv(GU.uV, false, V);
+  gl.uniform1f(GU.uS, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--shadow')) || 0.25);
+  gl.bindVertexArray(groundVao); gl.drawArrays(gl.TRIANGLES, 0, 6); gl.depthMask(true);
+
+  gl.useProgram(prog); gl.uniformMatrix4fv(U.uP, false, P); gl.uniformMatrix4fv(U.uV, false, V);
+  const queue = [[], []];
+  for (const part of PARTS) {
+    if (!state.vis[part.id]) continue;
+    const isShell = part.id === 'torso' || part.id === 'kopf';
+    if (isShell && state.shell === 'off') continue;
+    let a = 1;
+    if (isShell && state.shell === 'glass') a = 0.2;
+    if (state.hi && state.hi !== part.id) a = Math.min(a, 0.16);
+    (a < 1 ? queue[1] : queue[0]).push([part, a]);
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    gl.depthMask(pass === 0);
+    for (const [part, a] of queue[pass]) {
+      gl.uniform1f(U.uA, a); gl.uniform1f(U.uHi, state.hi === part.id ? 1 : 0);
+      for (const m of part.gpu) {
+        gl.uniform3f(U.uOff, (part.off[0] + m.d[0]) * ex, (part.off[1] + m.d[1]) * ex, (part.off[2] + m.d[2]) * ex);
+        gl.uniform3fv(U.uC, m.c); gl.bindVertexArray(m.vao); gl.drawArrays(gl.TRIANGLES, 0, m.n);
+      }
+    }
+  }
+  gl.depthMask(true);
+}
+
+// ---------- Bedienung ----------
+const explode = $('#explode');
+explode.addEventListener('input', () => { state.explodeTarget = explode.value / 100; $('#explodeOut').textContent = explode.value + ' %'; dirty = true; });
+$('#spin').addEventListener('change', () => { dirty = true; });
+$('#shellSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; state.shell = b.dataset.mode; save('robo.shell', state.shell); syncSeg(); dirty = true;
+});
+function syncSeg() { document.querySelectorAll('#shellSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.shell))); }
+syncSeg();
+
+const PETG = 1.27, FILL = 0.42; // grobe Näherung: Wände + 15-20 % Infill
+function list(el, title, kind, extra) {
+  const items = PARTS.filter((p) => p.kind === kind), n = items.reduce((s, p) => s + p.qty, 0);
+  el.innerHTML = `<div class="group-head"><h2>${title}</h2><span>${n} Teile${extra(items)}</span></div><ul>${items.map((p) => `
+    <li class="part" data-id="${p.id}"><label><input type="checkbox" checked aria-label="${p.name} anzeigen">
+      <span class="sw" style="background:${p.color}"></span><span class="pname">${p.name}${p.qty > 1 ? ' ×' + p.qty : ''}</span><span class="pmeta">${p.size}</span></label>
+      ${p.note ? `<p class="pnote">${p.note}</p>` : p.price ? `<p class="pnote">${p.price}</p>` : ''}</li>`).join('')}</ul>`;
+  el.querySelectorAll('.part').forEach((li) => {
+    const id = li.dataset.id;
+    li.addEventListener('mouseenter', () => { state.hi = id; li.classList.add('on'); dirty = true; });
+    li.addEventListener('mouseleave', () => { state.hi = null; li.classList.remove('on'); dirty = true; });
+    li.addEventListener('focusin', () => { state.hi = id; dirty = true; });
+    li.addEventListener('focusout', () => { state.hi = null; dirty = true; });
+    li.querySelector('input').addEventListener('change', (e) => { state.vis[id] = e.target.checked; dirty = true; });
+  });
+}
+const grams = PARTS.filter((p) => p.kind === 'print').reduce((s, p) => s + p.vol * p.qty * FILL * PETG, 0);
+list($('#listPrint'), 'Zum Drucken', 'print', () => ` · ca. ${fmt1(grams / 5) * 5} g`);
+const price = (p) => parseFloat((p.price || '0').replace(',', '.'));
+const buy = PARTS.filter((p) => p.kind === 'buy').reduce((s, p) => s + price(p), 0);
+list($('#listBuy'), 'Zum Kaufen', 'buy', () => ` · ca. ${buy.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`);
+$('#foot').textContent = 'Die gekauften Teile sind vereinfacht dargestellt. Kabel, Schalter, Schrauben (M2 × 8) und Kleinkram kommen dazu. Filament-Wert ist eine grobe Schätzung für PETG.';
+setView('iso'); userTouched = false; $('#spin').checked = true;
+requestAnimationFrame(frame);
+</script>

@@ -98,3 +98,45 @@ Wenn etwas nicht klappt, schick mir die Serial-Monitor-Ausgabe, dann debuggen wi
 ## Ausbauideen
 
 Kamera (+6 €), Servo als Kopf, LEDs als Augen, Wake-Word ("Hey Robo"), Akku-Anzeige.
+
+---
+
+# Körper (3D-Druck)
+
+Alle Teile sind parametrisch in `cad/` konstruiert und als STL in `cad/stl/` abgelegt.
+Neu erzeugen nach Änderungen an Maßen (`cad/parts.mjs`, Node.js, keine Abhängigkeiten):
+
+```bash
+cd cad && node build.mjs && node web.mjs
+```
+
+**3D-Ansicht im Browser:** `web/index.html` öffnen (drehen, zoomen, Explosionsansicht, Gehäuse durchsichtig).
+
+## Druckteile
+
+| Datei | Stück | Lage | Hinweis |
+|---|---|---|---|
+| `chassis.stl` | 1 | wie exportiert (Platte unten) | 0,2 mm, 3 Wände, 20 % Infill, keine Stützen |
+| `torso.stl` | 1 | wie exportiert (kopfüber) | 0,2 mm, 3 Wände, 15 % Infill |
+| `kopf.stl` | 1 | wie exportiert (kopfüber) | 0,16 mm, 3 Wände, 15 % Infill |
+| `rad.stl` | 2 | flach | PETG/PLA, optional Gummiband als Reifen |
+| `stuetzfuss.stl` | 1 | stehend | Zapfen kleben, glatte Kuppe, PETG rutscht gut |
+
+Gesamt ca. 100 g Filament. Maße: 130 × 92 × 91 mm (mit Rädern 131 mm breit).
+
+## Zusammenbau
+
+1. **Chassis:** N20-Motoren von innen in die Tunnel schieben (Welle zeigt nach außen), mit einem Tropfen Heißkleber sichern. Stützfuß einkleben.
+2. **Elektronik** in die Eck-Halter drücken: TP4056 (hinten, USB nach hinten), MT3608 (links vorne), DRV8833 und MAX98357A (rechts), 18650-Halter in die Wanne mit Kabelbindern durch die Schlitze.
+3. **Verkabeln** wie oben. Kabel für Kopf (ESP32, Ultraschall, Mikrofon) bleiben lang genug für den Durchlass in der Torso-Decke.
+4. **Torso** aufsetzen, Lautsprecher in den Ring unter der Decke kleben. Von unten vier M2 × 8 Schrauben durch die Chassis-Platte in die Säulen drehen (selbstschneidend).
+5. **Kopf:** ESP32 senkrecht in die beiden Gabeln schieben (USB-Buchsen zeigen zur Seite mit der Öffnung), HC-SR04 zwischen die Anschläge, Augen durch die Löcher. Mikrofon in die Tasche an der Decke (Öffnung nach oben). Kopf aufsetzen, von innen mit vier M2 × 8 Schrauben durch die Torso-Decke befestigen.
+6. Räder auf die Wellen drücken (D-Bohrung), Schalter in das Loch in der Rückwand.
+
+## Wichtig: Maße der Module prüfen
+
+Billige Module weichen oft um 1-2 mm ab. Vor dem Druck mit dem Messschieber prüfen und in
+`cad/parts.mjs` unter `P.mods`, `P.motor` und `P.speaker` anpassen. Die Halter haben 0,3 mm Spiel.
+Der STL-Export ist per Boolean-Operation erzeugt; moderne Slicer (Cura, Prusa, Bambu) reparieren
+Kleinigkeiten automatisch. Der Körper wurde nur digital geprüft, noch nicht gedruckt: Rechne mit einem
+Probedruck des Chassis und Anpassungen bei den Passungen (Motor-Tunnel, Radbohrung).
