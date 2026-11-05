@@ -1,0 +1,5 @@
+websockets>=12
+anthropic
+faster-whisper
+edge-tts
+numpy
